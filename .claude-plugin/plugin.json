@@ -313,6 +313,12 @@
       "description": "Put a copy button on code blocks, tables, diagrams, lists and quotes. Reach them with ctrl+x tab then Enter, or click where the terminal passes clicks through.",
       "default": true
     },
+    "codeLineNumbers": {
+      "type": "boolean",
+      "title": "Code line numbers",
+      "description": "Number the lines of code blocks with 10 to 400 lines. Turn off so drag-selecting a code block copies only its text.",
+      "default": true
+    },
     "copyButtonStyle": {
       "type": "string",
       "title": "Copy button style",

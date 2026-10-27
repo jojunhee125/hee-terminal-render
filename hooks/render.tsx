@@ -1264,7 +1264,7 @@ export const renderBlocks = (el: ElementTable, style: Style, blocks: Block[], co
         const lines = block.lines
         const toggle = lines.length > FOLD_AT ? fold?.(codeId(lines), lines.length - FOLD_SHOW, `fold${b}`) : null
         const shown = toggle?.folded ? FOLD_SHOW : lines.length
-        const numbered = lines.length >= NUMBER_AT && lines.length <= NUMBER_MAX
+        const numbered = style.codeLineNumbers !== false && lines.length >= NUMBER_AT && lines.length <= NUMBER_MAX
         const room = columns - 2 - gutterOf(lines, numbered)
         const gutter = numbered ? String(lines.length).length : 0
         const held = !style.nativeCode && mirrored(style) && lines.some(line => hasRtl(line) && (!opensLatin(line) || width(line) > room))

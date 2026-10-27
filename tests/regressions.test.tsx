@@ -2275,3 +2275,18 @@ test('copying a table keeps a <br> cell as one cell: a <br> in HTML, a quoted mu
   expect(tableHtml(table)).toContain('<td style="text-align: left">one<br><strong>two</strong></td>')
   expect(tableText(table)).toBe('a\tb\n"one\ntwo"\tx')
 })
+
+const gutterCount = async (ui: { findAll: (q: object) => Promise<unknown[]> }) => (await ui.findAll({ type: 'Text', text: /^ ?\d+ {2}$/ })).length
+const twelveLines = '```ts\n' + Array.from({ length: 12 }, (_, i) => `const v${i} = ${i}`).join('\n') + '\n```'
+
+test('a code block of 12 lines gets a line number gutter by default', async $ => {
+  const ui = await $.ui.mount(mount(twelveLines, 80))
+  expect(await gutterCount(ui)).toBe(12)
+  await ui.unmount()
+})
+
+test('codeLineNumbers off draws a 12 line code block with no gutter', { options: { codeLineNumbers: false } }, async $ => {
+  const ui = await $.ui.mount(mount(twelveLines, 80))
+  expect(await gutterCount(ui)).toBe(0)
+  await ui.unmount()
+})
