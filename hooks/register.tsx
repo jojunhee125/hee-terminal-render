@@ -5,11 +5,12 @@ import { clockText, endedAt, promptKey, sentAt, withRecord } from './clock'
 import type { Formula } from './latex'
 import { LATEX_DPR, LATEX_FONT_PX, MAX_IMAGE_BYTES, fitImage, fitsImage, imageFile, imageOf, keepFormulas, mathOf, padFor, pickFormula, pngSize, ratexColor, renderedOf } from './latex'
 import type { Block } from './markdown'
-import { nestedBlocks, parse } from './markdown'
+import { parse } from './markdown'
 import type { ClipboardBackend, HelperCommand } from './clipboard'
 import { clipboardCommand, drawsImages, imageCommand } from './clipboard'
 import { FIGURE_HINT } from './figure'
 import { drawDiagrams } from './mermaid'
+import { pickCopy, plainText } from './plain'
 import type { CopyButton, DrawPaste, Fold, TerminalEnv } from './render'
 import { MARK, bashEdits, drawMath, drawsHyperlinks, editNotes, fileRoot, hasShellOutput, instanceKey, isReadOnlyCall, leftToEngine, markerRoom, mirrored, noteTip, pasteLang, pathsToProbe, remember, rememberCall, renderBashEdits, renderBlocks, renderDiffCard, renderExpandedShell, renderFailure, renderShellResult, renderToolGroup, renderToolRow, renderTurnDuration, renderUserPrompt, takesClickableMarks, takesEditorLinks, takesHttpLinks, withoutBashEdits } from './render'
 import type { SetupStep } from './help'
@@ -308,9 +309,10 @@ const probe = async ($: EngineInterface, style: Style, probes: Probes): Promise<
   probes.terminal ??= applyRtl($, style)
   const terminal = await probes.terminal
   probes.htmlCopy ??= htmlBackend($)
-  const before = style.htmlCopy
+  const before = [style.htmlCopy, style.tsvCopy]
   style.htmlCopy = await probes.htmlCopy
-  if (style.htmlCopy !== before) $.ui.invalidate('ui.render')
+  style.tsvCopy = style.htmlCopy === null && (await overSsh($).catch(() => false))
+  if (style.htmlCopy !== before[0] || style.tsvCopy !== before[1]) $.ui.invalidate('ui.render')
   return terminal
 }
 
@@ -375,7 +377,7 @@ const drawMarkdown = ($: EngineInterface, el: ReturnType<EngineInterface['ui']['
   }
   const tip = notes?.press ? noteTip(blocks, text => void $.ui.toast(text)) : undefined
   const elements = renderBlocks(el, notes ? { ...style, noteKey: instanceKey(notes.id) } : style, blocks, columns, drawMath(el, style, blocks, drawn), copy, folder($, el, open), tip)
-  const button = reply === undefined ? null : copy(reply, 'reply', '⧉ copy reply')
+  const button = reply === undefined ? null : copy(style.replyCopy === 'plain' ? () => plainText(blocks, style, columns) : reply, 'reply', '⧉ copy reply')
   if (!button) return elements
   return [...elements, style.copyButtonStyle === 'hover' ? replyMarker(el, button, notes?.id) : <el.Box key="reply" alignSelf="flex-end">{button}</el.Box>]
 }
@@ -679,7 +681,7 @@ export const register: Register = (on, options) => {
     void latexEngine($, latex)
     const started = await next(e)
     await $.command
-      .register({ name: 'prismantis', description: 'Switch the prismantis theme, pick styles from samples, copy the last reply, or show the demo', argumentHint: '[theme [<name> | random] | setup [<step> [<pick>]] | copy [code] | demo]' })
+      .register({ name: 'prismantis', description: 'Switch the prismantis theme, pick styles from samples, copy the last reply, or show the demo', argumentHint: '[theme [<name> | random] | setup [<step> [<pick>]] | copy [code | table | plain] | demo]' })
       .catch(() => undefined)
     return started
   })
@@ -692,10 +694,10 @@ export const register: Register = (on, options) => {
     if (sub === 'copy') {
       const reply = (await $.session.messages()).findLast(m => m.role === 'assistant' && m.text.trim())
       if (!reply) return { text: 'Nothing to copy yet.' }
-      const code = name === 'code' ? nestedBlocks(parseCached(reply.text)).findLast(b => b.kind === 'code') : undefined
-      if (name === 'code' && code?.kind !== 'code') return { text: 'The last reply has no code block.' }
-      const result = await $.ui.copy({ text: code?.kind === 'code' ? code.lines.join('\n') : reply.text })
-      return { text: result.isCopied ? `Copied the last ${code ? 'code block' : 'reply'}.` : `Copy failed: ${result.reason}` }
+      const picked = pickCopy(reply.text, parseCached(reply.text), name, style)
+      if ('missing' in picked) return { text: picked.missing }
+      const result = await $.ui.copy({ text: picked.text })
+      return { text: result.isCopied ? `Copied the last ${picked.what}.` : `Copy failed: ${result.reason}` }
     }
     if (sub === 'demo-rtl') {
       terminal = await probe($, style, probes)

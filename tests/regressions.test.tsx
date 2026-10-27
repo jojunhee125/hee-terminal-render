@@ -2290,3 +2290,42 @@ test('codeLineNumbers off draws a 12 line code block with no gutter', { options:
   expect(await gutterCount(ui)).toBe(0)
   await ui.unmount()
 })
+
+const fortyLines = '```ts\n' + Array.from({ length: 40 }, (_, i) => `const w${i} = ${i}`).join('\n') + '\n```'
+
+test('a code block of 40 lines folds to 20 by default', async $ => {
+  const ui = await $.ui.mount(mount(fortyLines, 80))
+  expect((await ui.find({ key: 'fold0' }))?.props.label).toBe('+20 more lines')
+  expect((await ui.findAll({ type: 'Text', text: /const w39 = 39/ })).length).toBe(0)
+  await ui.unmount()
+})
+
+for (const codeFold of ['60', 'off'] as const) test(`codeFold ${codeFold} draws a 40 line code block whole`, { options: { codeFold } }, async $ => {
+  const ui = await $.ui.mount(mount(fortyLines, 80))
+  expect(await ui.find({ key: 'fold0' })).toBeUndefined()
+  expect((await ui.findAll({ type: 'Text', text: /const w39 = 39/ })).length).toBeGreaterThan(0)
+  await ui.unmount()
+})
+
+for (const codeIndent of [true, false]) test(`codeIndent ${codeIndent} ${codeIndent ? 'indents code two columns' : 'draws code at the reply edge'}`, { options: { codeIndent } }, async $ => {
+  const ui = await $.ui.mount(mount('```ts\nconst a = 1\n```', 80))
+  expect((await ui.findAll({ type: 'Box' })).some(b => b.props.paddingLeft === 2)).toBe(codeIndent)
+  await ui.unmount()
+})
+
+const shareable = 'Plan:\n\n| 이름 | 값 |\n|---|---|\n| **알파** | 1 |\n\n```figure\n{accent:┌──┐}\n{accent:│}{ok:ok}{accent:│}\n{accent:└──┘}\n```\n\n```bash\nnpm test\n```'
+
+test('replyCopy plain copies tables as a grid, figures without markup and code without fences', { options: { replyCopy: 'plain' } }, async ($, on) => {
+  const copied = stubClipboard(on)
+  const ui = await $.ui.mount(mount(shareable))
+  const reply = (await ui.findAll({ type: 'Button' })).find(b => b.props.label === '⧉ copy reply')
+  await ui.press({ key: reply!.key! })
+  const text = copied[0] ?? ''
+  expect(text).toContain('│ 이름 │ 값 │')
+  expect(text).toContain('│ 알파 │ 1  │')
+  expect(text).toContain('│ok│')
+  expect(text).toContain('npm test')
+  expect(/[{}`*|]/.test(text)).toBe(false)
+  expect(text.startsWith('Plan:\n\n┌')).toBe(true)
+  await ui.unmount()
+})

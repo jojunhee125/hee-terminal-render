@@ -7,6 +7,7 @@ export const HINT = [
   'When a reply carries a numeric series or a flow that is easier to see than read, add a small diagram or chart with short labels, not a second picture of what a figure already shows.',
   'Skip diagrams and pictures for short or simple answers.',
   'Put any command or snippet the user may run or copy in a fenced block with a language tag, never inline code: fenced blocks get a copy button, inline code does not.',
+  'This note is in English only for the tool: write replies, the short progress notes between tool calls, and commit messages in the language the user and their instructions use.',
 ].join(' ')
 
 export const showcaseText = (themes: readonly string[]): string => `
@@ -28,7 +29,7 @@ Code-shaped prose stays as written: f(*args, **kwargs), a link with parentheses 
 |---------|------|
 | \`/prismantis\` | This screen |
 | \`/prismantis theme <name>\` | Switch theme on the spot (\`/prismantis <name>\` works too), \`random\` for a new dark one now and each time the mod loads |
-| \`/prismantis copy\` | Copy the last reply, or \`copy code\` for its last code block |
+| \`/prismantis copy\` | Copy the last reply, \`copy code\` its last code block, \`copy table\` its last table tab-separated, \`copy plain\` the reply as shareable text |
 | \`/prismantis setup\` | Pick a theme and how tables, tasks, headings, copy buttons, prompts, times, tool rows, tool output, diffs and pie charts look, from drawn samples |
 | \`/config\` | Edit any option |
 
@@ -268,7 +269,7 @@ export const helpText = (themes: readonly string[]): string => `
 | Command | Does |
 |---------|------|
 | \`/prismantis theme <name>\` | Switch theme on the spot (\`/prismantis <name>\` works too), \`random\` for a new dark one now and each time the mod loads |
-| \`/prismantis copy\` | Copy the last reply, or \`copy code\` for its last code block |
+| \`/prismantis copy\` | Copy the last reply, \`copy code\` its last code block, \`copy table\` its last table tab-separated, \`copy plain\` the reply as shareable text |
 | \`/prismantis setup\` | Pick a theme and how tables, tasks, headings, copy buttons, prompts, times, tool rows, tool output, diffs and pie charts look, from drawn samples |
 | \`/prismantis demo\` | Full showcase, every element and diagram, plus a section in your language (Korean so far, or \`demo ko\`) |
 | \`/prismantis demo-rtl\` | Hebrew right-to-left showcase |

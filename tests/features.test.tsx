@@ -502,6 +502,7 @@ test('your prompts carry the render hint as model-only context', async ($, on) =
   expect(seen[0]?.some(c => c.includes('prismantis'))).toBe(true)
   expect(seen[0]?.some(c => c.includes('fenced block') && c.includes('copy button'))).toBe(true)
   expect(seen[0]).toContain(FIGURE_HINT)
+  expect(seen[0]?.some(c => c.includes('write replies, the short progress notes between tool calls, and commit messages in the language the user'))).toBe(true)
 })
 
 test('prompts another plugin sends carry the render hint, framed or as your own words, notifications do not', async ($, on) => {
@@ -2703,4 +2704,19 @@ test('/prismantis demo adds a section in the language of LANG, and demo ko picks
 test('/prismantis demo stays English when LANG names no showcase language', async ($, on) => {
   mock.env(on, { LANG: 'en_US.UTF-8' })
   expect((await setupRun($, 'demo')).text).not.toContain('한국어')
+})
+
+test('/prismantis copy table copies the last table tab-separated, and plain copies shareable text', async ($, on) => {
+  const copied = transcript(on, [{ role: 'assistant', text: 'Sizes:\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n```bash\nls\n```' }])
+  expect((await $.command.run(run('copy table'))).text).toBe('Copied the last table.')
+  expect((await $.command.run(run('copy plain'))).text).toBe('Copied the last reply as plain text.')
+  expect(copied[0]).toBe('a\tb\n1\t2')
+  expect(copied[1]).toContain('Sizes:\n\n┌')
+  expect(copied[1]?.endsWith('\n\nls')).toBe(true)
+})
+
+test('/prismantis copy table says so when the reply has no table', async ($, on) => {
+  const copied = transcript(on, [{ role: 'assistant', text: 'no table here' }])
+  expect((await $.command.run(run('copy table'))).text).toBe('The last reply has no table.')
+  expect(copied).toEqual([])
 })

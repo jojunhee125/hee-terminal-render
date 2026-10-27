@@ -355,6 +355,9 @@ Options sit under `options`, keyed by the plugin's install name. Project setting
 | `toolOutput` | `full`, `quiet` | `full` |
 | `copyButtons` | `true`, `false` | `true` |
 | `codeLineNumbers` | `true`, `false` | `true` |
+| `codeIndent` | `true`, `false` (code starts at the reply's edge, so a drag selection adds no indent) | `true` |
+| `codeFold` | `30`, `60` (fold code blocks longer than that), `off` | `30` |
+| `replyCopy` | `markdown` (as written), `plain` (tables and diagrams as drawn art, figures without markup, code without fences) | `markdown` |
 | `copyButtonStyle` | `inline`, `hover` | `inline` |
 | `diagramHints` | `true`, `false` | `true` |
 | `issueHint` | `true`, `false` | `true` |

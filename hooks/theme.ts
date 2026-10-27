@@ -37,8 +37,12 @@ export type Style = {
   mermaidAscii: boolean
   copyButtons: boolean
   codeLineNumbers?: boolean
+  codeIndent?: boolean
+  codeFold?: '30' | '60' | 'off'
+  replyCopy?: 'markdown' | 'plain'
   copyButtonStyle: 'inline' | 'hover'
   htmlCopy: ClipboardBackend | null
+  tsvCopy?: boolean
   images: boolean
   nativeCode?: boolean
   gridFace?: boolean
@@ -98,6 +102,9 @@ export const resolveStyle = (options: PluginOptions): Style => {
     mermaidAscii: options.mermaidAscii === true,
     copyButtons: options.copyButtons !== false,
     codeLineNumbers: options.codeLineNumbers !== false,
+    codeIndent: options.codeIndent !== false,
+    codeFold: pick(String(options.codeFold), ['30', '60', 'off'] as const, '30'),
+    replyCopy: pick(options.replyCopy, ['markdown', 'plain'] as const, 'markdown'),
     copyButtonStyle: pick(options.copyButtonStyle, ['inline', 'hover'] as const, 'inline'),
     htmlCopy: null,
     images: false,

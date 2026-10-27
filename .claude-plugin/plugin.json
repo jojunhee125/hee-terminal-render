@@ -319,6 +319,26 @@
       "description": "Number the lines of code blocks with 10 to 400 lines. Turn off so drag-selecting a code block copies only its text.",
       "default": true
     },
+    "codeIndent": {
+      "type": "boolean",
+      "title": "Code indent",
+      "description": "Indent code blocks two columns. Turn off so drag-selected code carries no added leading spaces beyond the reply's own two-column gutter.",
+      "default": true
+    },
+    "codeFold": {
+      "type": "string",
+      "title": "Code fold",
+      "description": "Fold code blocks longer than this many lines, showing their first lines and a button for the rest. off never folds, so a drag selection reaches every line.",
+      "default": "30",
+      "options": ["30", "60", "off"]
+    },
+    "replyCopy": {
+      "type": "string",
+      "title": "Reply copy",
+      "description": "What ⧉ copy reply copies. markdown: the reply as written. plain: shareable text, with tables and diagrams as drawn art, figures without their color markup and code without fences.",
+      "default": "markdown",
+      "options": ["markdown", "plain"]
+    },
     "copyButtonStyle": {
       "type": "string",
       "title": "Copy button style",

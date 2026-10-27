@@ -131,6 +131,7 @@ const hidden = {
 
 for (const [where, setup] of Object.entries(hidden)) test(`the HTML action is hidden ${where}`, async ($, on) => {
   clipboardEnv(on, setup.platform, setup.env)
+  const ssh = 'SSH_CONNECTION' in setup.env || 'SSH_TTY' in setup.env
   let processes = 0
   on('process.run', () => {
     processes++
@@ -139,9 +140,10 @@ for (const [where, setup] of Object.entries(hidden)) test(`the HTML action is hi
   const copies = recordCopies(on)
   await startSession($, on)
   const ui = await $.ui.mount({ ...mount, surface: setup.surface })
-  expect((await ui.findAll({ type: 'Button' })).map(button => button.props.label).filter(label => label !== '⧉ copy reply')).toEqual(['⧉ md', '⧉ art'])
+  expect((await ui.findAll({ type: 'Button' })).map(button => button.props.label).filter(label => label !== '⧉ copy reply')).toEqual(['⧉ md', '⧉ art', ...(ssh ? ['⧉ tsv'] : [])])
   await ui.press({ key: 'copy0' })
-  expect(copies).toEqual([source])
+  if (ssh) await ui.press({ key: 'tsv0' })
+  expect(copies).toEqual(ssh ? [source, plain] : [source])
   expect(processes).toBe(0)
   await ui.unmount()
 })

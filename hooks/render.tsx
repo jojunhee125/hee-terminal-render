@@ -653,7 +653,7 @@ const heldCode = (el: ElementTable, style: Style, lines: string[], shown: number
   heldSegments(style, lines, lang).slice(0, shown).flatMap((segs, i) =>
     visualRows(tabbed(wordPieces(segs, null)), room).map((part, k) => (
       <el.Box key={`${key}.h${i}.${k}`} flexDirection="row">
-        {numberedLine(el, style, `  ${gutter ? (k ? ' '.repeat(gutter + 2) : `${String(i + 1).padStart(gutter)}  `) : ''}`, part, `${key}.h${i}.${k}`)}
+        {numberedLine(el, style, `${style.codeIndent === false ? '' : '  '}${gutter ? (k ? ' '.repeat(gutter + 2) : `${String(i + 1).padStart(gutter)}  `) : ''}`, part, `${key}.h${i}.${k}`)}
       </el.Box>
     )))
 
@@ -666,7 +666,7 @@ const codeRows = (el: ElementTable, style: Style, lines: string[], shown: number
 const codeBody = (el: ElementTable, style: Style, rows: RenderElement[], gutter: number, held: boolean, more: RenderNode | null): RenderElement => {
   const { Box, Text } = el
   return (
-    <Box flexDirection="column" paddingLeft={held ? 0 : 2}>
+    <Box flexDirection="column" paddingLeft={held || style.codeIndent === false ? 0 : 2}>
       {held || !gutter || style.nativeCode ? rows : rows.map((row, i) => row.type === 'Text' ? <Box key={`n${i}`} flexDirection="row"><Text color={style.theme.codeComment} dimColor>{`${String(i + 1).padStart(gutter)}  `}</Text>{row}</Box> : row)}
       {held && more ? <Box paddingLeft={2}>{more}</Box> : more}
     </Box>
@@ -1150,6 +1150,8 @@ const NUMBER_MAX = 400
 const FOLD_AT = 30
 const FOLD_SHOW = 20
 
+const foldOf = (style: Style): [number, number] => (style.codeFold === 'off' ? [Infinity, 0] : style.codeFold === '60' ? [60, 50] : [FOLD_AT, FOLD_SHOW])
+
 const codeId = (lines: string[]): string => {
   let h = 5381
   for (const line of lines) {
@@ -1234,7 +1236,7 @@ export const renderBlocks = (el: ElementTable, style: Style, blocks: Block[], co
     const { art, grid } = artsOf(drawn.get(b)?.art, block)
     const first = text === undefined || isPlainCode ? null : copy?.(text, `copy${b}`, block.kind === 'table' ? '⧉ md' : art === undefined ? undefined : '⧉ source')
     const second = first && art !== undefined ? copy?.(art, `art${b}`, '⧉ art') : null
-    const html = first && block.kind === 'table' ? copy?.(() => tableText(block), `html${b}`, '⧉ html', () => tableHtml(block)) : null
+    const html = first && block.kind === 'table' ? (style.tsvCopy ? copy?.(() => tableText(block), `tsv${b}`, '⧉ tsv') : copy?.(() => tableText(block), `html${b}`, '⧉ html', () => tableHtml(block))) : null
     return { first, second, html, png: second && copy?.(grid!, `png${b}`, '▣ png', 'png') }
   })
   const codeHead = (label: string, button: RenderElement | null) => {
@@ -1262,10 +1264,11 @@ export const renderBlocks = (el: ElementTable, style: Style, blocks: Block[], co
         if (done) return done
         const note = drawn.get(b)?.note
         const lines = block.lines
-        const toggle = lines.length > FOLD_AT ? fold?.(codeId(lines), lines.length - FOLD_SHOW, `fold${b}`) : null
-        const shown = toggle?.folded ? FOLD_SHOW : lines.length
+        const [foldAt, foldShow] = foldOf(style)
+        const toggle = lines.length > foldAt ? fold?.(codeId(lines), lines.length - foldShow, `fold${b}`) : null
+        const shown = toggle?.folded ? foldShow : lines.length
         const numbered = style.codeLineNumbers !== false && lines.length >= NUMBER_AT && lines.length <= NUMBER_MAX
-        const room = columns - 2 - gutterOf(lines, numbered)
+        const room = columns - (style.codeIndent === false ? 0 : 2) - gutterOf(lines, numbered)
         const gutter = numbered ? String(lines.length).length : 0
         const held = !style.nativeCode && mirrored(style) && lines.some(line => hasRtl(line) && (!opensLatin(line) || width(line) > room))
         const rows = held ? heldCode(el, style, lines, shown, block.lang, gutter, room, key) : codeRows(el, style, lines, shown, block.lang, numbered, room, key)
