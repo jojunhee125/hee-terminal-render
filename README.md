@@ -1,3 +1,72 @@
+# hee-terminal-render
+
+Claude Code 답변을 색과 표·다이어그램으로 그려 주는 mod입니다. [prismantis](https://github.com/NahumLitvin/prismantis) 0.36.0을 바탕으로, **드래그 복사·공유·한국어 사용**에 맞게 고쳤습니다.
+
+## 원본 prismantis와 다른 점
+
+| 구분 | 원본 prismantis | hee-terminal-render |
+|---|---|---|
+| 코드 줄 번호 (10줄 이상) | 항상 표시, 드래그 복사에 번호가 섞임 | 기본 끔 (`codeLineNumbers`) |
+| 코드 왼쪽 2칸 여백 | 항상 있음 | 기본 끔 (`codeIndent`) |
+| 긴 코드 접기 | 30줄 넘으면 20줄만 보임 | 기본 접지 않음 (`codeFold`) |
+| 답장 복사 버튼 | 마크다운 원문 | 마크업 없는 공유용 텍스트 (`replyCopy`), `/prismantis copy plain` |
+| 표 복사 (SSH) | 버튼 숨김 | `⧉ tsv` 버튼, `/prismantis copy table` (엑셀에 셀 단위로 붙음) |
+| 시각 표시 | 기본 끔, 서버 시간대 | 기본 켬, 항상 한국 시간 `14:32 KST` (`clock`, `clockZone`) |
+| 모델 안내문 | 영어, 답변·커밋이 영어로 샐 수 있음 | 한국어 (`hintLanguage`) |
+| 진행 상황 | 없음 | 경과 시간·실행 중 도구·서브에이전트·단계를 옆 패널 또는 입력창 위에 표시 (`progressPane`) |
+| 원작자 이슈 안내 | 10번째 질문마다 붙음 | 기본 끔 (`issueHint`) |
+
+## 설치
+
+Claude Code 2.1.287 이상이 필요합니다. Claude Code 안에서 아래 두 줄을 실행하세요.
+
+```
+/plugin marketplace add https://github.com/jojunhee125/hee-terminal-render.git
+```
+
+```
+/plugin install prismantis@hee-terminal-render
+```
+
+원본 prismantis를 쓰고 있었다면 먼저 지우세요. 둘 다 `/prismantis` 명령을 써서 충돌합니다.
+
+```
+/plugin uninstall prismantis@prismantis
+```
+
+설치하거나 설정을 바꾼 뒤에는 `/reload-plugins`를 실행하면 적용됩니다.
+
+## 업데이트
+
+```bash
+claude plugin marketplace update hee-terminal-render && claude plugin update prismantis@hee-terminal-render
+```
+
+그다음 열려 있는 세션마다 `/reload-plugins`를 실행하세요.
+
+## 설정 바꾸기
+
+`/config`에서 바꾸거나, `~/.claude/settings.json`에 넣고 `/reload-plugins`를 실행합니다. 예를 들어 원본처럼 줄 번호와 접기를 되돌리려면:
+
+```json
+"pluginConfigs": {
+  "prismantis@hee-terminal-render": {
+    "options": { "codeLineNumbers": true, "codeFold": "30" }
+  }
+}
+```
+
+모든 옵션과 기본값은 아래 원본 문서의 [Configure](#configure) 표에 있습니다.
+
+## 출처와 라이선스
+
+[prismantis](https://github.com/NahumLitvin/prismantis) (Nahum Litvin, MIT License)를 바탕으로 만들었습니다. 원본 저작권 표시는 [LICENSE](LICENSE)에 그대로 있습니다. 이 저장소의 문제는 원작자가 아니라 이 저장소에 알려 주세요.
+
+---
+
+<details>
+<summary><strong>원본 prismantis 문서 (영어)</strong> — 테마, 기능, 전체 옵션 설명</summary>
+
 <h1 align="center"><img src="docs/brand/banner.png" alt="prismantis" width="640"></h1>
 
 <p align="center"><em>Sees 16 colors. Your terminal only had 8.</em></p>
@@ -355,10 +424,10 @@ Options sit under `options`, keyed by the plugin's install name. Project setting
 | `toolStyle` | `chat`, `tree-dim`, `tree-bold`, `classic` | `chat` |
 | `toolOutput` | `full`, `quiet` | `full` |
 | `copyButtons` | `true`, `false` | `true` |
-| `codeLineNumbers` | `true`, `false` | `true` |
-| `codeIndent` | `true`, `false` (code starts at the reply's edge, so a drag selection adds no indent) | `true` |
-| `codeFold` | `30`, `60` (fold code blocks longer than that), `off` | `30` |
-| `replyCopy` | `markdown` (as written), `plain` (tables and diagrams as drawn art, figures without markup, code without fences) | `markdown` |
+| `codeLineNumbers` | `true`, `false` | `false` |
+| `codeIndent` | `true`, `false` (code starts at the reply's edge, so a drag selection adds no indent) | `false` |
+| `codeFold` | `30`, `60` (fold code blocks longer than that), `off` | `off` |
+| `replyCopy` | `markdown` (as written), `plain` (tables and diagrams as drawn art, figures without markup, code without fences) | `plain` |
 | `copyButtonStyle` | `inline`, `hover` | `inline` |
 | `diagramHints` | `true`, `false` | `true` |
 | `issueHint` | `true`, `false` | `false` |
@@ -476,3 +545,5 @@ Built by [Nahum Litvin](https://github.com/NahumLitvin), who writes about runnin
 ## License
 
 [MIT](LICENSE). Bundled third-party code is listed in [THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+
+</details>

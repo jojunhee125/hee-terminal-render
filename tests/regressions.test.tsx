@@ -557,7 +557,7 @@ test('table art keeps a long path whole when the other wide column can give way'
   expect(tableArt(table).split('\n').some(l => l.includes(path))).toBe(true)
 })
 
-test('copy reply copies the whole reply as written, Hebrew in reading order', { options: { rtl: 'warp' } }, async ($, on) => {
+test('copy reply copies the whole reply as written, Hebrew in reading order', { options: { rtl: 'warp', replyCopy: 'markdown' } }, async ($, on) => {
   const copied = stubClipboard(on)
   const text = 'שלום חברים, זו הדגמה של prismantis.\n\n| a | b |\n|---|---|\n| 1 | 2 |'
   const ui = await $.ui.mount(mount(text))
@@ -1019,7 +1019,7 @@ for (const columns of [120, 34]) {
   })
 }
 
-test('copy reply copies paths as written', async ($, on) => {
+test('copy reply copies paths as written', { options: { replyCopy: 'markdown' } }, async ($, on) => {
   filesAt(on, '2.1.289')
   const copied = recordCopies(on)
   if (!(await linksHttp($.ui.mount(mount('[/x](file:///x)'))))) return
@@ -1957,7 +1957,7 @@ for (const surface of ['terminal', 'desktop'] as const) test(`an alert keeps a l
   await ui.unmount()
 })
 
-for (const surface of ['terminal', 'desktop'] as const) test(`a code block and a table inside a quote fit beside the bar and copy their own source on ${surface}`, async ($, on) => {
+for (const surface of ['terminal', 'desktop'] as const) test(`a code block and a table inside a quote fit beside the bar and copy their own source on ${surface}`, { options: { replyCopy: 'markdown' } }, async ($, on) => {
   const copied = stubClipboard(on)
   const t = PRESETS['catppuccin-mocha']
   const table = `| Check | Result |\n|---|---|\n| lint | ${'passes on every package '.repeat(4).trim()} |`
@@ -2283,7 +2283,13 @@ test('copying a table keeps a <br> cell as one cell: a <br> in HTML, a quoted mu
 const gutterCount = async (ui: { findAll: (q: object) => Promise<unknown[]> }) => (await ui.findAll({ type: 'Text', text: /^ ?\d+ {2}$/ })).length
 const twelveLines = '```ts\n' + Array.from({ length: 12 }, (_, i) => `const v${i} = ${i}`).join('\n') + '\n```'
 
-test('a code block of 12 lines gets a line number gutter by default', async $ => {
+test('a code block of 12 lines gets no line number gutter by default', async $ => {
+  const ui = await $.ui.mount(mount(twelveLines, 80))
+  expect(await gutterCount(ui)).toBe(0)
+  await ui.unmount()
+})
+
+test('codeLineNumbers on draws a 12 line code block with a line number gutter', { options: { codeLineNumbers: true } }, async $ => {
   const ui = await $.ui.mount(mount(twelveLines, 80))
   expect(await gutterCount(ui)).toBe(12)
   await ui.unmount()
@@ -2297,7 +2303,14 @@ test('codeLineNumbers off draws a 12 line code block with no gutter', { options:
 
 const fortyLines = '```ts\n' + Array.from({ length: 40 }, (_, i) => `const w${i} = ${i}`).join('\n') + '\n```'
 
-test('a code block of 40 lines folds to 20 by default', async $ => {
+test('a code block of 40 lines draws whole by default', async $ => {
+  const ui = await $.ui.mount(mount(fortyLines, 80))
+  expect(await ui.find({ key: 'fold0' })).toBeUndefined()
+  expect((await ui.findAll({ type: 'Text', text: /const w39 = 39/ })).length).toBeGreaterThan(0)
+  await ui.unmount()
+})
+
+test('codeFold 30 folds a 40 line code block to 20', { options: { codeFold: '30' } }, async $ => {
   const ui = await $.ui.mount(mount(fortyLines, 80))
   expect((await ui.find({ key: 'fold0' }))?.props.label).toBe('+20 more lines')
   expect((await ui.findAll({ type: 'Text', text: /const w39 = 39/ })).length).toBe(0)

@@ -884,7 +884,7 @@ test('a terminal without bidi gets each Hebrew diagram label in display order, i
 const toolCard = (tool: string, output: unknown) => ({ plugin: 'prismantis', surface: 'terminal' as const, component: 'ToolResult' as const, props: { tool_use_id: `t-${tool}`, tool, output, isErrored: false } })
 
 for (const rtl of ['iterm', 'warp'] as const)
-  test(`a code row with only Hebrew in it stays in its column on ${rtl}: the gutter ends in a braille blank on iTerm, so the terminal does not mirror the row`, { options: { rtl } }, async ($, on) => {
+  test(`a code row with only Hebrew in it stays in its column on ${rtl}: the gutter ends in a braille blank on iTerm, so the terminal does not mirror the row`, { options: { rtl, codeIndent: true } }, async ($, on) => {
     on('ui.render', ($, e) => {
       const { Text } = $.ui.resolve(e)
       return <Text>engine</Text>
@@ -907,7 +907,7 @@ for (const rtl of ['iterm', 'warp'] as const)
     await fence.unmount()
   })
 
-test('on iTerm a long Hebrew line in a code block wraps into rows that each open with a braille blank, so no continuation is mirrored away from the gutter', { options: { rtl: 'iterm' } }, async $ => {
+test('on iTerm a long Hebrew line in a code block wraps into rows that each open with a braille blank, so no continuation is mirrored away from the gutter', { options: { rtl: 'iterm', codeIndent: true } }, async $ => {
   const words = 'שורה ארוכה מאוד בעברית שעוברת את רוחב המסך הצר ולכן נשברת לכמה שורות'
   const ui = await $.ui.mount(mount(`\`\`\`ts\nconst a = 1\n${words}\n\`\`\``, 40))
   const rows = (await ui.findAll({ type: 'Box' })).map(b => b.text).filter(t => /^ ⠀[א-ת]/.test(t))
@@ -924,7 +924,7 @@ test('on iTerm a shell block whose Hebrew comes after the command keeps its shel
   await ui.unmount()
 })
 
-test('on iTerm a shell block with a line that opens with Hebrew keeps the shell colors the block has without Hebrew', { options: { rtl: 'iterm' } }, async $ => {
+test('on iTerm a shell block with a line that opens with Hebrew keeps the shell colors the block has without Hebrew', { options: { rtl: 'iterm', codeIndent: true } }, async $ => {
   const colors = async (source: string, texts: RegExp[]) => {
     const ui = await $.ui.mount(mount(source))
     const found = await Promise.all(texts.map(async text => (await ui.findAll({ type: 'Text', text })).map(t => t.props.color)))

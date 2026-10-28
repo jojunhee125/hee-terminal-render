@@ -460,7 +460,7 @@ test('fence languages that name Prism internals fall back to plain code', async 
   }
 })
 
-test('code blocks draw through the native Code element off the terminal', async $ => {
+test('code blocks draw through the native Code element off the terminal', { options: { codeLineNumbers: true } }, async $ => {
   const ui = await $.ui.mount({ ...draw('```ts\nconst name = "shop"\n  return name\n```'), surface: 'desktop' })
   const code = await ui.find({ type: 'Code' })
   expect(code?.props.source).toBe('const name = "shop"\n  return name')
@@ -497,7 +497,7 @@ test('tableStyle rules keeps the open look', { options: { tableStyle: 'rules' } 
 
 const longCode = (n: number) => `\`\`\`text\n${Array.from({ length: n }, (_, i) => `step ${i + 1}`).join('\n')}\n\`\`\``
 
-test('code blocks of 10+ lines get one numbered Text per line, shorter ones none', async $ => {
+test('code blocks of 10+ lines get one numbered Text per line, shorter ones none', { options: { codeLineNumbers: true } }, async $ => {
   const ui = await $.ui.mount({ ...draw(longCode(12)), surface: 'terminal' })
   expect(await ui.find({ type: 'Text', text: /^ 1  $/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /^12  $/ })).toBeDefined()
@@ -508,7 +508,7 @@ test('code blocks of 10+ lines get one numbered Text per line, shorter ones none
   await short.unmount()
 })
 
-test('a wrapped numbered line keeps its continuation after the gutter', async $ => {
+test('a wrapped numbered line keeps its continuation after the gutter', { options: { codeLineNumbers: true } }, async $ => {
   const long = `${'word '.repeat(40).trim()}`
   const text = `\`\`\`text\n${[long, ...Array.from({ length: 11 }, (_, i) => `step ${i + 2}`)].join('\n')}\n\`\`\``
   const ui = await $.ui.mount({ ...draw(text), surface: 'terminal' })
@@ -519,7 +519,7 @@ test('a wrapped numbered line keeps its continuation after the gutter', async $ 
   await ui.unmount()
 })
 
-test('long code blocks fold to 20 lines, open and fold back on press, and copy every line', async ($, on) => {
+test('long code blocks fold to 20 lines, open and fold back on press, and copy every line', { options: { codeLineNumbers: true, codeFold: '30' } }, async ($, on) => {
   const copied: string[] = []
   on('ui.copy', (_, e) => {
     copied.push(e.text)
@@ -542,7 +542,7 @@ test('long code blocks fold to 20 lines, open and fold back on press, and copy e
   }
 })
 
-test('two code blocks that differ only in where lines break fold on their own', async $ => {
+test('two code blocks that differ only in where lines break fold on their own', { options: { codeFold: '30' } }, async $ => {
   const body = Array.from({ length: 29 }, () => 'x').join('\n')
   const ui = await $.ui.mount({ ...draw(`\`\`\`text\nab\nc\n${body}\n\`\`\`\n\nand\n\n\`\`\`text\na\nbc\n${body}\n\`\`\``), surface: 'terminal' as const })
   await ui.press({ key: 'fold0' })
