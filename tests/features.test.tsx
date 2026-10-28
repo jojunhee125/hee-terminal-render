@@ -3,11 +3,11 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
 
 import { clockText, endedAt, sentAt } from '../hooks/clock'
-import { FIGURE_HINT } from '../hooks/figure'
+import { FIGURE_HINT, FIGURE_HINT_KO } from '../hooks/figure'
 import { parse } from '../hooks/markdown'
 import { PRESET_BACKGROUNDS, PRESET_NAMES, PRESETS } from '../hooks/presets'
 import { RANDOM_THEMES, pickTheme, resolveStyle } from '../hooks/theme'
-import { ISSUE_HINT, SETUP_DONE, SETUP_PANE_KEYS, SETUP_PANE_OPENED, setupParts, setupSteps, setupText } from '../hooks/help'
+import { HINT, HINT_KO, ISSUE_HINT, ISSUE_HINT_KO, SETUP_DONE, SETUP_PANE_KEYS, SETUP_PANE_OPENED, setupParts, setupSteps, setupText } from '../hooks/help'
 import type { Theme } from '../hooks/theme'
 import { EDIT_NOTES, PRISM_COLORS, bashEdits, columnWidths, contrast, describeShell, diffLines, diffTint, fullHue, movesTree, onTint, pathLanguage, previewBand, tint, wordTint, errorReason, formatDuration, groupSummary, isReadOnlyCall, programsOf, refusalReason, rememberCall, shortTarget, shortenPaths, withoutBashEdits } from '../hooks/render'
 import { claudeAt } from './claude-version'
@@ -434,6 +434,36 @@ test('clock times read as 24h or 12h, with the date when not today', () => {
   expect(clockText(local(9, 23, 5), now, '24h')).toBe('Oct 9 23:05')
 })
 
+test('clock times read in the chosen zone, Seoul marked KST, with the date when another day there', () => {
+  const utc = (day: number, h: number, m: number) => Date.UTC(2026, 9, day, h, m)
+  expect(clockText(utc(10, 5, 32), utc(10, 6, 0), '24h', 'Asia/Seoul')).toBe('14:32 KST')
+  expect(clockText(utc(10, 5, 32), utc(10, 6, 0), '12h', 'Asia/Seoul')).toBe('2:32 PM KST')
+  expect(clockText(utc(10, 14, 30), utc(10, 14, 50), '24h', 'Asia/Seoul')).toBe('23:30 KST')
+  expect(clockText(utc(10, 14, 30), utc(10, 15, 30), '24h', 'Asia/Seoul')).toBe('Oct 10 23:30 KST')
+  expect(clockText(utc(10, 15, 30), utc(10, 23, 0), '24h', 'Asia/Seoul')).toBe('00:30 KST')
+  expect(clockText(utc(10, 5, 32), utc(10, 6, 0), '24h', 'UTC')).toBe('05:32 UTC')
+  expect(clockText(utc(10, 14, 30), utc(10, 15, 30), '24h', 'UTC')).toBe('14:30 UTC')
+})
+
+test('clockZone keeps local, any valid zone, and falls back to Seoul', () => {
+  expect(resolveStyle({}).clockZone).toBe('Asia/Seoul')
+  expect(resolveStyle({ clockZone: 'local' }).clockZone).toBe('local')
+  expect(resolveStyle({ clockZone: 'Europe/Berlin' }).clockZone).toBe('Europe/Berlin')
+  expect(resolveStyle({ clockZone: 'asia/seoul' }).clockZone).toBe('Asia/Seoul')
+  expect(resolveStyle({ clockZone: 'Mars/Olympus' }).clockZone).toBe('Asia/Seoul')
+  expect(resolveStyle({ clockZone: 42 }).clockZone).toBe('Asia/Seoul')
+  expect(resolveStyle({}).clock).toBe('24h')
+})
+
+test('clock stamps the turn footer in Seoul time by default', async ($, on) => {
+  mock.clock(on, { now: Date.UTC(2026, 9, 10, 5, 32) })
+  on('turn.complete', async (_$, e) => ({ text: e.answer }))
+  await $.turn.complete({ answer: 'done', durationMs: 380000, isAborted: false, turnId: 't1', reason: 'answer' })
+  const ui = await $.ui.mount({ plugin: 'prismantis', surface: 'terminal', component: 'TurnDuration', props: { word: 'Baked', durationMs: 380000 } })
+  expect(await ui.find({ type: 'Text', text: /^14:32 KST$/ })).toBeDefined()
+  await ui.unmount()
+})
+
 test('a row takes the newest matching time recorded before it was first drawn', () => {
   const list = [{ text: 'again', at: 1 }, { text: 'hi there', at: 2 }, { text: 'again', at: 3 }]
   expect(sentAt(list, 'again', 2)).toBe(1)
@@ -448,7 +478,7 @@ test('a row takes the newest matching time recorded before it was first drawn', 
   expect(endedAt(ends, 90000, 30)).toBeUndefined()
 })
 
-test('clock adds the end time to the turn footer', { options: { clock: '24h' } }, async ($, on) => {
+test('clock adds the end time to the turn footer', { options: { clock: '24h', clockZone: 'local' } }, async ($, on) => {
   mock.clock(on, { now: local(10, 14, 32) })
   on('turn.complete', async (_$, e) => ({ text: e.answer }))
   await $.turn.complete({ answer: 'done', durationMs: 380000, isAborted: false, turnId: 't1', reason: 'answer' })
@@ -457,7 +487,7 @@ test('clock adds the end time to the turn footer', { options: { clock: '24h' } }
   await ui.unmount()
 })
 
-test('clock off, or a turn it never saw, leaves the turn footer as it was', async ($, on) => {
+test('clock off, or a turn it never saw, leaves the turn footer as it was', { options: { clock: 'off' } }, async ($, on) => {
   mock.clock(on, { now: local(10, 14, 32) })
   on('turn.complete', async (_$, e) => ({ text: e.answer }))
   await $.turn.complete({ answer: 'done', durationMs: 380000, isAborted: false, turnId: 't1', reason: 'answer' })
@@ -466,7 +496,7 @@ test('clock off, or a turn it never saw, leaves the turn footer as it was', asyn
   await ui.unmount()
 })
 
-test('an old turn line that redraws never takes a later end with a close duration', { options: { clock: '24h' } }, async ($, on) => {
+test('an old turn line that redraws never takes a later end with a close duration', { options: { clock: '24h', clockZone: 'local' } }, async ($, on) => {
   const clock = mock.clock(on, { now: local(10, 14, 0) })
   on('turn.complete', async (_$, e) => ({ text: e.answer }))
   const line = (id: string) => $.ui.mount({ plugin: 'prismantis', surface: 'terminal', component: 'TurnDuration', requestId: id, props: { word: 'Baked', durationMs: 5000 } })
@@ -491,7 +521,7 @@ test('slash command output renders as markdown, errors stay native', async ($, o
   await bad.unmount()
 })
 
-test('your prompts carry the render hint as model-only context', async ($, on) => {
+test('your prompts carry the render hint as model-only context, in English with hintLanguage en', { options: { hintLanguage: 'en' } }, async ($, on) => {
   const seen: (readonly string[] | undefined)[] = []
   mock.env(on, {})
   on('prompt.submit', (_, e) => {
@@ -501,8 +531,28 @@ test('your prompts carry the render hint as model-only context', async ($, on) =
   await $.prompt.submit({ text: 'show me deploys per day', wait: false, origin: { kind: 'composer' } })
   expect(seen[0]?.some(c => c.includes('prismantis'))).toBe(true)
   expect(seen[0]?.some(c => c.includes('fenced block') && c.includes('copy button'))).toBe(true)
+  expect(seen[0]).toContain(HINT)
   expect(seen[0]).toContain(FIGURE_HINT)
+  expect(seen[0]).not.toContain(HINT_KO)
   expect(seen[0]?.some(c => c.includes('write replies, the short progress notes between tool calls, and commit messages in the language the user'))).toBe(true)
+})
+
+test('your prompts carry the render hint in Korean by default, every literal token kept', async ($, on) => {
+  const seen: (readonly string[] | undefined)[] = []
+  mock.env(on, {})
+  on('prompt.submit', (_, e) => {
+    seen.push(e.context)
+    return { text: e.text, context: e.context }
+  })
+  await $.prompt.submit({ text: 'show me deploys per day', wait: false, origin: { kind: 'composer' } })
+  expect(seen[0]).toContain(HINT_KO)
+  expect(seen[0]).toContain(FIGURE_HINT_KO)
+  expect(seen[0]).not.toContain(HINT)
+  expect(seen[0]).not.toContain(FIGURE_HINT)
+  for (const token of ['prismantis', '```mermaid', '> [!WARNING]', '> [!NOTE]', 'xychart-beta', 'line "east" [..]', '복사 버튼']) expect(HINT_KO).toContain(token)
+  expect(HINT_KO).toContain('답변·도구 사이 진행 메모·커밋 메시지는 사용자와 지시문이 쓰는 언어로 쓴다.')
+  expect(HINT_KO.length).toBeLessThanOrEqual(HINT.length)
+  expect(FIGURE_HINT_KO.length).toBeLessThanOrEqual(FIGURE_HINT.length)
 })
 
 test('prompts another plugin sends carry the render hint, framed or as your own words, notifications do not', async ($, on) => {
@@ -516,9 +566,9 @@ test('prompts another plugin sends carry the render hint, framed or as your own 
   await $.prompt.submit({ text: 'build finished', wait: false, origin: { kind: 'plugin', name: 'some-plugin' } })
   await $.prompt.submit({ text: 'task done', wait: false, origin: { kind: 'task-notification' } })
   expect(seen).toHaveLength(3)
-  expect(seen[0]).toContain(FIGURE_HINT)
-  expect(seen[1]).toContain(FIGURE_HINT)
-  expect(seen[2] ?? []).not.toContain(FIGURE_HINT)
+  expect(seen[0]).toContain(FIGURE_HINT_KO)
+  expect(seen[1]).toContain(FIGURE_HINT_KO)
+  expect(seen[2] ?? []).not.toContain(FIGURE_HINT_KO)
 })
 
 test('no render hint when diagramHints is off', { options: { diagramHints: false } }, async ($, on) => {
@@ -530,8 +580,9 @@ test('no render hint when diagramHints is off', { options: { diagramHints: false
   })
   await $.prompt.submit({ text: 'hi', wait: false, origin: { kind: 'composer' } })
   expect(seen).toHaveLength(1)
-  expect((seen[0] ?? []).filter(c => c !== ISSUE_HINT).some(c => c.includes('prismantis'))).toBe(false)
+  expect((seen[0] ?? []).filter(c => c !== ISSUE_HINT && c !== ISSUE_HINT_KO).some(c => c.includes('prismantis'))).toBe(false)
   expect(seen[0] ?? []).not.toContain(FIGURE_HINT)
+  expect(seen[0] ?? []).not.toContain(FIGURE_HINT_KO)
 })
 
 test('no figure hint when mermaid is off', { options: { mermaid: false } }, async ($, on) => {
@@ -544,6 +595,7 @@ test('no figure hint when mermaid is off', { options: { mermaid: false } }, asyn
   await $.prompt.submit({ text: 'hi', wait: false, origin: { kind: 'composer' } })
   expect(seen).toHaveLength(1)
   expect(seen[0] ?? []).not.toContain(FIGURE_HINT)
+  expect(seen[0] ?? []).not.toContain(FIGURE_HINT_KO)
 })
 
 test('a continuation line joins the list item it is indented under', async () => {
@@ -673,6 +725,7 @@ test('headless runs get no render hint', async ($, on) => {
   expect(seen).toHaveLength(1)
   expect((seen[0] ?? []).some(c => c.includes('prismantis'))).toBe(false)
   expect(seen[0] ?? []).not.toContain(FIGURE_HINT)
+  expect(seen[0] ?? []).not.toContain(FIGURE_HINT_KO)
 })
 
 test('/prismantis theme <name> and /prismantis <name> switch the theme through config', async ($, on) => {
@@ -895,7 +948,7 @@ test('promptStyle off and task notifications keep the engine look', { options: {
   await ui.unmount()
 })
 
-test('clock puts the send time before your prompt', { options: { clock: '24h' } }, async ($, on) => {
+test('clock puts the send time before your prompt', { options: { clock: '24h', clockZone: 'local' } }, async ($, on) => {
   mock.clock(on, { now: local(10, 9, 7, 3) })
   on('prompt.submit', (_, e) => ({ text: e.text, context: e.context }))
   await $.prompt.submit({ text: 'how many frog raids?', wait: false, origin: { kind: 'composer' } })
@@ -909,7 +962,7 @@ test('clock puts the send time before your prompt', { options: { clock: '24h' } 
   await unsent.unmount()
 })
 
-test('an old prompt row that redraws after a resume never takes a later send time', { options: { clock: '24h' } }, async ($, on) => {
+test('an old prompt row that redraws after a resume never takes a later send time', { options: { clock: '24h', clockZone: 'local' } }, async ($, on) => {
   const clock = mock.clock(on, { now: local(10, 9, 0) })
   on('prompt.submit', (_, e) => ({ text: e.text, context: e.context }))
   const old = await $.ui.mount({ ...prompt('again'), requestId: 'old' })
@@ -923,7 +976,7 @@ test('an old prompt row that redraws after a resume never takes a later send tim
   await fresh.unmount()
 })
 
-test('clock with promptStyle off stamps the engine row', { options: { clock: '24h', promptStyle: 'off' } }, async ($, on) => {
+test('clock with promptStyle off stamps the engine row', { options: { clock: '24h', clockZone: 'local', promptStyle: 'off' } }, async ($, on) => {
   mock.clock(on, { now: local(10, 9, 7) })
   on('prompt.submit', (_, e) => ({ text: e.text, context: e.context }))
   on('ui.render', ($, e) => {
@@ -2670,7 +2723,7 @@ test('the issue hint rides the first prompt and every tenth, also with diagram h
     return { text: e.text, context: e.context }
   })
   for (let i = 0; i < 11; i++) await $.prompt.submit({ text: `prompt ${i}`, wait: false, origin: { kind: 'composer' } })
-  expect(seen.map(c => c?.includes(ISSUE_HINT) ?? false)).toEqual([true, false, false, false, false, false, false, false, false, false, true])
+  expect(seen.map(c => c?.includes(ISSUE_HINT_KO) ?? false)).toEqual([true, false, false, false, false, false, false, false, false, false, true])
 })
 
 test('the issue hint is off by default', async ($, on) => {
@@ -2682,9 +2735,21 @@ test('the issue hint is off by default', async ($, on) => {
   })
   await $.prompt.submit({ text: 'hi', wait: false, origin: { kind: 'composer' } })
   expect(seen[0]?.includes(ISSUE_HINT) ?? false).toBe(false)
+  expect(seen[0]?.includes(ISSUE_HINT_KO) ?? false).toBe(false)
 })
 
 test('with diagram hints off, the issue hint still goes out alone', { options: { diagramHints: false, issueHint: true } }, async ($, on) => {
+  const seen: (readonly string[] | undefined)[] = []
+  mock.env(on, {})
+  on('prompt.submit', (_, e) => {
+    seen.push(e.context)
+    return { text: e.text, context: e.context }
+  })
+  await $.prompt.submit({ text: 'hi', wait: false, origin: { kind: 'composer' } })
+  expect(seen[0]).toEqual([ISSUE_HINT_KO])
+})
+
+test('hintLanguage en sends the issue hint in English', { options: { diagramHints: false, issueHint: true, hintLanguage: 'en' } }, async ($, on) => {
   const seen: (readonly string[] | undefined)[] = []
   mock.env(on, {})
   on('prompt.submit', (_, e) => {

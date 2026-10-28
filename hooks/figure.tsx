@@ -31,6 +31,14 @@ export const FIGURE_HINT = [
   `At most ${FIGURE_SAFE_COLUMNS} columns, glyphs one column wide such as ${FIGURE_GLYPHS}, no emoji or tabs; markup takes no columns, so align on the drawn text and pad box rows to the top border. CJK letters take two columns, count them twice. Draw a time axis with edge ticks like ▏───▏───▏, not ├┼┤: █ fills its cell, ├┼┤ sit mid-cell.`,
 ].join(' ')
 
+export const FIGURE_HINT_KO = [
+  '여는 줄이 정확히 ```figure 인 코드 블록은 쓴 그대로 텍스트 그림으로 그려진다.',
+  '위치가 의미를 가질 때는 mermaid 대신 figure를 쓴다: 시간 축 위에서 겨루는 소요 시간, 화면 배치, 단계, 전/후. 단순한 흐름과 차트는 mermaid로 두고, 짧은 답·코드 변경·보고서에는 그림을 넣지 않는다. 본문은 그림을 다시 설명하지 않는다.',
+  '설명·비교·계획을 요청받았고 그림이 도움이 되면 답변을 그림 중심으로 짜고, 핵심은 첫 화면에 그림이나 한 문장으로 둔다.',
+  'figure에서만 {role:text}로 색을 입히며 중첩하지 않는다: accent는 선, warn은 위험, ok는 정상, note는 시간, dim은 곁가지, strong은 강조.',
+  `최대 ${FIGURE_SAFE_COLUMNS}열, ${FIGURE_GLYPHS} 같은 한 칸 글리프만 쓰고 이모지·탭은 쓰지 않는다. 마크업은 칸을 차지하지 않으니 그려지는 글자 기준으로 맞추고 상자 행은 윗변 길이까지 채운다. CJK 글자는 2칸을 차지하니 두 번 센다. 시간 축은 ├┼┤ 가 아니라 ▏───▏───▏ 처럼 가장자리 눈금으로 그린다: █는 칸을 채우고 ├┼┤는 칸 가운데에 놓인다.`,
+].join(' ')
+
 const MARKUP = new RegExp(`\\{(${FIGURE_ROLES.join('|')}):([^{}]*)\\}`, 'g')
 const MARKER = /\{([A-Za-z][\w-]*):/g
 const TEXT_FORMS: Record<string, string> = { '▶': '►', '◀': '◄' }

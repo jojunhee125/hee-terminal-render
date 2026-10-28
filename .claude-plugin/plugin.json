@@ -1,6 +1,6 @@
 {
   "name": "prismantis",
-  "version": "0.36.0-hee.2",
+  "version": "0.36.0-hee.3",
   "description": "Colorful, themeable rendering for Claude Code replies: tables, headings, code, numbers, paths and links.",
   "author": {
     "name": "Nahum Litvin",
@@ -85,9 +85,15 @@
     "clock": {
       "type": "string",
       "title": "Clock times",
-      "description": "Shows when you sent each prompt and when each turn finished. 24h: 14:32. 12h: 2:32 PM. A time from another day gets its date. off: no times.",
-      "default": "off",
+      "description": "Shows when you sent each prompt and when each turn finished. 24h: 14:32. 12h: 2:32 PM. A time from another day gets its date. off: no times. Shown in the zone of Clock zone.",
+      "default": "24h",
       "options": ["off", "24h", "12h"]
+    },
+    "clockZone": {
+      "type": "string",
+      "title": "Clock zone",
+      "description": "Time zone for the clock times: an IANA name such as Asia/Seoul or Europe/Berlin, or local for this machine's zone. Seoul times end in KST, other named zones in their short name, local in nothing. An unknown name falls back to Asia/Seoul.",
+      "default": "Asia/Seoul"
     },
     "toolStyle": {
       "type": "string",
@@ -351,6 +357,19 @@
       "title": "Issue hint",
       "description": "On your first prompt and every tenth after it, tell the model it can offer, after asking you, to open a minimal repro issue on prismantis when you say something drew wrong. About 35 tokens each time. Off by default in this build.",
       "default": false
+    },
+    "hintLanguage": {
+      "type": "string",
+      "title": "Hint language",
+      "description": "Language of the rendering hint sent to the model with each prompt. ko: Korean. en: the original English.",
+      "default": "ko",
+      "options": ["ko", "en"]
+    },
+    "progressPane": {
+      "type": "boolean",
+      "title": "Progress pane",
+      "description": "While a turn runs, show its elapsed time, the tool running now, the tool count, subagents and the todo steps: in a pane beside the chat in the fullscreen layout, else in the band above the prompt. When the turn ends it shrinks to one summary line.",
+      "default": true
     },
     "diagramHints": {
       "type": "boolean",

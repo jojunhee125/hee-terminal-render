@@ -10,6 +10,16 @@ export const HINT = [
   'This note is in English only for the tool: write replies, the short progress notes between tool calls, and commit messages in the language the user and their instructions use.',
 ].join(' ')
 
+export const HINT_KO = [
+  '이 세션의 답변은 prismantis 모드가 그린다. prismantis는 Claude Code 안에서 돌며 호출할 명령이나 도구가 아니다: 사용자가 prismantis로 보여 달라고 하면 답변에 markdown으로 쓴다.',
+  'markdown 표, GitHub 알림(> [!WARNING], > [!NOTE]), 언어 태그가 붙은 코드 블록, ```mermaid 블록은 터미널에서 색이 입혀진 그래픽으로 그려진다:',
+  'flowchart, sequence diagram, xychart-beta 막대·선 차트(범례에 쓰이도록 계열마다 이름을 붙인다: line "east" [..]), pie chart, gantt 일정표.',
+  '답변에 수치 계열이나 읽기보다 보기가 쉬운 흐름이 있으면 짧은 라벨로 작은 다이어그램이나 차트를 더한다. figure가 이미 보여 주는 것을 또 그리지 않는다.',
+  '짧거나 간단한 답에는 다이어그램과 그림을 넣지 않는다.',
+  '사용자가 실행하거나 복사할 명령·코드는 인라인 코드가 아니라 언어 태그가 붙은 코드 블록에 넣는다: 코드 블록에는 복사 버튼이 붙고 인라인 코드에는 붙지 않는다.',
+  '답변·도구 사이 진행 메모·커밋 메시지는 사용자와 지시문이 쓰는 언어로 쓴다.',
+].join(' ')
+
 export const showcaseText = (themes: readonly string[]): string => `
 # prismantis
 
@@ -85,7 +95,11 @@ Use \`⧉ md\` for Markdown, \`⧉ art\` for chat, or \`⧉ html\` for a formatt
 
 ### Your prompts
 
-Scroll up: what you typed draws in a bubble. \`promptStyle\` switches to \`wide\`, \`bar\`, \`chevron\` or \`off\` in \`/config\`. Set \`clock\` to \`24h\` or \`12h\` and each prompt shows when you sent it, and each turn's last line when it finished. A paste of 4 lines or more draws in a double frame of its own, folded to one button that opens it as highlighted code.
+Scroll up: what you typed draws in a bubble. \`promptStyle\` switches to \`wide\`, \`bar\`, \`chevron\` or \`off\` in \`/config\`. Each prompt shows when you sent it, and each turn's last line when it finished: \`clock\` is \`24h\` by default, in the zone \`clockZone\` names (\`Asia/Seoul\` reads \`14:32 KST\`, \`local\` keeps the machine's), \`12h\` reads \`2:32 PM\` and \`off\` hides it. A paste of 4 lines or more draws in a double frame of its own, folded to one button that opens it as highlighted code.
+
+### Turn progress
+
+While a turn runs, \`progressPane\` shows its elapsed time, the tool running now and how many ran, background subagents, and the todo steps as ✅ 🔄 ⬜: in a pane beside the chat in the fullscreen layout, else in the band above the prompt, one summary line once the turn ends. \`hintLanguage\` picks the language of the note the model reads with each prompt: \`ko\` (default here) or \`en\`.
 
 ### Tool rows
 
@@ -351,6 +365,8 @@ flowchart LR
 `
 
 export const ISSUE_HINT = 'If the user says prismantis drew something wrong, offer (ask first) a minimal repro issue at https://github.com/NahumLitvin/prismantis/issues.'
+
+export const ISSUE_HINT_KO = '사용자가 prismantis가 뭔가를 잘못 그렸다고 하면, (먼저 물어본 뒤) https://github.com/NahumLitvin/prismantis/issues 에 최소 재현 이슈를 올리자고 제안한다.'
 const KOREAN_SHOWCASE = `
 ## 한국어
 

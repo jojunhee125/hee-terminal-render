@@ -1,6 +1,7 @@
 import type { PluginOptions } from 'claude-code'
 
 import type { ClipboardBackend } from './clipboard'
+import { pickZone } from './clock'
 import type { PresetName } from './presets'
 import { PRESET_BACKGROUNDS, PRESET_NAMES, PRESETS } from './presets'
 import type { Shape, Terminal } from './rtl'
@@ -23,6 +24,7 @@ export type Style = {
   taskStyle: 'checks' | 'ticks' | 'box' | 'progress'
   promptStyle: 'bubble' | 'wide' | 'bar' | 'chevron' | 'off'
   clock: Clock
+  clockZone: string
   toolStyle: 'chat' | 'tree-dim' | 'tree-bold' | 'classic'
   toolOutput: 'full' | 'quiet'
   narration?: boolean
@@ -53,6 +55,8 @@ export type Style = {
   found?: ReadonlySet<string>
   diagramHints: boolean
   issueHint: boolean
+  hintLanguage: 'ko' | 'en'
+  progressPane: boolean
   rtl: 'auto' | Terminal | 'off'
   reorder: boolean
   shape: Shape
@@ -91,7 +95,8 @@ export const resolveStyle = (options: PluginOptions): Style => {
     tableStyle: pick(options.tableStyle, ['box', 'rules', 'grid', 'minimal'] as const, 'box'),
     taskStyle: pick(options.taskStyle, ['checks', 'ticks', 'box', 'progress'] as const, 'checks'),
     promptStyle: pick(options.promptStyle, ['bubble', 'wide', 'bar', 'chevron', 'off'] as const, 'bubble'),
-    clock: pick(options.clock, ['off', '24h', '12h'] as const, 'off'),
+    clock: pick(options.clock, ['off', '24h', '12h'] as const, '24h'),
+    clockZone: pickZone(options.clockZone),
     toolStyle: pick(options.toolStyle, ['chat', 'tree-dim', 'tree-bold', 'classic'] as const, 'chat'),
     toolOutput: pick(options.toolOutput, ['full', 'quiet'] as const, 'full'),
     diffStyle: pick(options.diffStyle, ['card', 'full', 'marks', 'bar'] as const, 'card'),
@@ -114,6 +119,8 @@ export const resolveStyle = (options: PluginOptions): Style => {
     pathLinks: false,
     diagramHints: options.diagramHints !== false && options.mermaid !== false,
     issueHint: options.issueHint === true,
+    hintLanguage: pick(options.hintLanguage, ['ko', 'en'] as const, 'ko'),
+    progressPane: options.progressPane !== false,
     rtl,
     reorder: rtl !== 'auto' && rtl !== 'off',
     shape: rtl === 'auto' || rtl === 'off' ? 'visual' : TERMINALS[rtl],

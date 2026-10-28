@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, PluginOptions, PromptOrigin, Register, RenderElement, RenderSurface } from 'claude-code'
+import type { EngineInterface, PluginOptions, PromptOrigin, Register, RenderElement, RenderSurface, ToolCallInput, TurnCompleteInput } from 'claude-code'
 
 import { clockText, endedAt, promptKey, sentAt, withRecord } from './clock'
 import type { Formula } from './latex'
@@ -8,14 +8,15 @@ import type { Block } from './markdown'
 import { parse } from './markdown'
 import type { ClipboardBackend, HelperCommand } from './clipboard'
 import { clipboardCommand, drawsImages, imageCommand } from './clipboard'
-import { FIGURE_HINT } from './figure'
+import { FIGURE_HINT, FIGURE_HINT_KO } from './figure'
 import { drawDiagrams } from './mermaid'
 import { pickCopy, plainText } from './plain'
 import type { CopyButton, DrawPaste, Fold, TerminalEnv } from './render'
 import { MARK, bashEdits, drawMath, drawsHyperlinks, editNotes, fileRoot, hasShellOutput, instanceKey, isReadOnlyCall, leftToEngine, markerRoom, mirrored, noteTip, pasteLang, pathsToProbe, remember, rememberCall, renderBashEdits, renderBlocks, renderDiffCard, renderExpandedShell, renderFailure, renderShellResult, renderToolGroup, renderToolRow, renderTurnDuration, renderUserPrompt, takesClickableMarks, takesEditorLinks, takesHttpLinks, withoutBashEdits } from './render'
 import type { SetupStep } from './help'
-import { HINT, ISSUE_HINT, SETUP_DONE, SETUP_PANE_KEYS, SETUP_PANE_OPENED, THEME_PREVIEW, findSetup, helpText, languageShowcase, rtlShowcaseText, setupParts, setupSteps, setupText, showcaseText } from './help'
+import { HINT, HINT_KO, ISSUE_HINT, ISSUE_HINT_KO, SETUP_DONE, SETUP_PANE_KEYS, SETUP_PANE_OPENED, THEME_PREVIEW, findSetup, helpText, languageShowcase, rtlShowcaseText, setupParts, setupSteps, setupText, showcaseText } from './help'
 import { PRESET_NAMES } from './presets'
+import { EMPTY_PROGRESS, PROGRESS_ROWS, agentEnded, agentStarted, progressRows, renderProgress, taskCreated, taskUpdated, todosWritten, toolEnded, toolStarted, turnEnded, turnStarted } from './progress'
 import type { Style } from './theme'
 import { RANDOM_THEMES, pickTheme, resolveStyle } from './theme'
 import type { Terminal } from './rtl'
@@ -26,6 +27,13 @@ const HINTED_ORIGINS = ['composer', 'bridge', 'plugin'] as const satisfies reado
 const takesHint = (origin: PromptOrigin): boolean => HINTED_ORIGINS.some(kind => kind === origin.kind)
 
 const LATEX_HINT = 'This terminal typesets LaTeX math: a formula in $$…$$ on lines of its own, or in a ```math block, renders as an image (KaTeX syntax). Inline $…$ does not render, so write inline math as plain text or Unicode.'
+
+const LATEX_HINT_KO = '이 터미널은 LaTeX 수식을 조판한다: 따로 줄에 둔 $$…$$ 수식이나 ```math 블록은 이미지로 그려진다(KaTeX 문법). 인라인 $…$는 그려지지 않으니 인라인 수식은 일반 텍스트나 Unicode로 쓴다.'
+
+const HINTS = {
+  en: { main: HINT, figure: FIGURE_HINT, latex: LATEX_HINT, issue: ISSUE_HINT },
+  ko: { main: HINT_KO, figure: FIGURE_HINT_KO, latex: LATEX_HINT_KO, issue: ISSUE_HINT_KO },
+} as const
 
 const detectTerminal = async ($: EngineInterface): Promise<Terminal | null> => {
   const program = await $.env.get('TERM_PROGRAM')
@@ -67,13 +75,19 @@ const setupAt = atom({ plugin: 'prismantis', key: 'setupAt' } as const, 0)
 const setupFocus = atom({ plugin: 'prismantis', key: 'setupFocus' } as const, '')
 const setupLand = atom({ plugin: 'prismantis', key: 'setupLand' } as const, '')
 const foundPaths = atom({ plugin: 'prismantis', key: 'foundPaths' } as const, [])
+const progress = atom({ plugin: 'prismantis', key: 'progress' } as const, EMPTY_PROGRESS, { shape: 'progress-2' })
+const progressTick = atom({ plugin: 'prismantis', key: 'progressTick' } as const, 0)
+
+const nowOf = ($: EngineInterface): Promise<number> => $.clock.now().catch(() => Date.now())
 
 const firstDrawn = async ($: EngineInterface, id: string): Promise<number> => {
   const ref = { plugin: 'prismantis', key: 'drawn', id } as const
   const { value } = await $.state.get(ref)
   if (value !== undefined) return value
-  const now = await $.clock.now()
-  $.clock.after(0, () => void $.state.set(ref, now, { ifVersion: 0 }))
+  const now = await nowOf($)
+  try {
+    $.clock.after(0, () => void $.state.set(ref, now, { ifVersion: 0 }))
+  } catch {}
   return now
 }
 
@@ -587,10 +601,83 @@ const drawSetup = ($: EngineInterface, el: ReturnType<EngineInterface['ui']['res
   return [...(found.before ? [md(base, found.before, 'before')] : []), md(base, found.parts.head, 'head'), ...picks, md(base, found.parts.tail, 'tail')]
 }
 
-const hintsFor = (style: Style, latex: LatexSession, nth: number): string[] => [
-  ...(style.diagramHints ? [HINT, FIGURE_HINT, ...(latex.ready && !latex.stopped ? [LATEX_HINT] : [])] : []),
-  ...(style.issueHint && nth % 10 === 0 ? [ISSUE_HINT] : []),
-]
+const hintsFor = (style: Style, latex: LatexSession, nth: number): string[] => {
+  const hint = HINTS[style.hintLanguage]
+  return [
+    ...(style.diagramHints ? [hint.main, hint.figure, ...(latex.ready && !latex.stopped ? [hint.latex] : [])] : []),
+    ...(style.issueHint && nth % 10 === 0 ? [hint.issue] : []),
+  ]
+}
+
+const PROGRESS_PANE = 'prismantis-progress'
+
+const progressPaneShown = async ($: EngineInterface): Promise<boolean> =>
+  (await $.ui.panes().catch(() => [])).some(pane => pane.id === PROGRESS_PANE && pane.isPlaced && pane.isShown)
+
+const openProgressPane = async ($: EngineInterface): Promise<void> => {
+  const panes = await $.ui.panes().catch(() => undefined)
+  if (!panes || panes.some(pane => pane.id === PROGRESS_PANE)) return
+  await $.ui.open({ id: PROGRESS_PANE, title: '진행 상황', columns: 52 }).catch(() => undefined)
+}
+
+const taskIdOf = (done: unknown): string | undefined => {
+  const task = (done as { result?: { task?: { id?: unknown } } } | undefined)?.result?.task
+  return typeof task?.id === 'string' ? task.id : undefined
+}
+
+type ProgressSession = { ticker?: { cancel: () => void }; fullscreen: boolean; dismissed: boolean; finished: Map<string, number> }
+
+const progressTurnStart = async ($: EngineInterface, session: ProgressSession): Promise<void> => {
+  const at = await nowOf($)
+  await update($, progress, p => turnStarted(p, at))
+  session.ticker?.cancel()
+  try {
+    session.ticker = $.clock.every(1000, () => void update($, progressTick, n => n + 1))
+  } catch {
+    session.ticker = undefined
+  }
+  if (session.fullscreen && !session.dismissed) void openProgressPane($)
+}
+
+const progressToolStart = async ($: EngineInterface, e: ToolCallInput): Promise<string | undefined> => {
+  if (e.agentId !== undefined) return undefined
+  const id = e.tool_use_id || `call:${await nowOf($)}`
+  await update($, progress, p => toolStarted(p, id, e.tool, e))
+  if (e.tool === 'TodoWrite') await update($, progress, p => todosWritten(p, e.todos))
+  if (e.tool === 'TaskUpdate') await update($, progress, p => taskUpdated(p, e.taskId, { status: e.status, subject: e.subject }))
+  return id
+}
+
+const progressToolDone = async ($: EngineInterface, e: ToolCallInput, id: string, done: unknown): Promise<void> => {
+  const created = e.tool === 'TaskCreate' ? taskIdOf(done) : undefined
+  if (created !== undefined && e.tool === 'TaskCreate') await update($, progress, p => taskCreated(p, created, e.subject))
+  await update($, progress, p => toolEnded(p, id))
+}
+
+const progressTurnEnd = async ($: EngineInterface, session: ProgressSession, e: TurnCompleteInput): Promise<void> => {
+  const at = await nowOf($)
+  if (e.agentId === undefined) {
+    session.ticker?.cancel()
+    session.ticker = undefined
+    await update($, progress, p => turnEnded(p, at, e.isAborted ? 'aborted' : e.reason))
+    return
+  }
+  const id = e.agentId
+  session.finished.set(id, at)
+  if (session.finished.size > 200) session.finished.delete(session.finished.keys().next().value!)
+  await update($, progress, p => agentEnded(p, id, at))
+}
+
+const progressSpawned = async ($: EngineInterface, session: ProgressSession, id: string, description: string): Promise<void> => {
+  const at = await nowOf($)
+  const ended = session.finished.get(id)
+  await update($, progress, p => (ended === undefined ? agentStarted(p, id, description, at) : agentEnded(agentStarted(p, id, description, at), id, ended)))
+}
+
+const progressRowsNow = async ($: EngineInterface, max: number) => {
+  await read($, progressTick)
+  return progressRows(await read($, progress), await nowOf($), Math.max(1, Math.min(PROGRESS_ROWS, max)))
+}
 
 const localeOf = async ($: EngineInterface, asked?: string): Promise<string> => asked ?? (await $.env.get('LC_ALL').catch(() => undefined)) ?? (await $.env.get('LANG').catch(() => undefined)) ?? ''
 
@@ -670,11 +757,56 @@ export const register: Register = (on, options) => {
     })
   }
 
-  on('tool.call', async (_$, e, next) => {
-    const done = await next(e)
-    pathChecks.asked = new Set(pathChecks.found)
-    return done
-  })
+  const watch: ProgressSession | undefined = style.progressPane ? { fullscreen: false, dismissed: false, finished: new Map() } : undefined
+  if (watch) {
+    on('turn.start', async ($, e, next) => {
+      if (e.agentId === undefined) await progressTurnStart($, watch)
+      return next(e)
+    })
+
+    on('agent.spawn', async ($, e, next) => {
+      const started = await next(e)
+      if (started.deny === undefined && started.agentId && !e.isTeammate && !e.workflow) await progressSpawned($, watch, started.agentId, e.description)
+      return started
+    }).catch((_$, e, next) => next(e))
+
+    on('ui.close', async (_$, e, next) => {
+      if (e.id === PROGRESS_PANE && e.origin.kind === 'person') watch.dismissed = true
+      return next(e)
+    }).catch((_$, e, next) => next(e))
+
+    on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+      watch.fullscreen = e.viewport?.isFullscreen === true
+      if (e.props.hasSurvey) return next(e)
+      const rows = await progressRowsNow($, e.props.maxRows)
+      if (rows.length === 0 || (await progressPaneShown($))) return next(e)
+      return renderProgress($.ui.resolve(e), style.theme, rows)
+    })
+
+    on('ui.render', { component: 'Pane', requestId: PROGRESS_PANE }, async ($, e) => {
+      const rows = await progressRowsNow($, e.props.scroll.bodyRows)
+      const el = $.ui.resolve(e)
+      return rows.length ? renderProgress(el, style.theme, rows) : <el.Text dimColor>대기 중</el.Text>
+    })
+  }
+
+  on('tool.call', async ($, e, next) => {
+    const id = watch ? await progressToolStart($, e) : undefined
+    if (id === undefined) {
+      const done = await next(e)
+      pathChecks.asked = new Set(pathChecks.found)
+      return done
+    }
+    try {
+      const done = await next(e)
+      await progressToolDone($, e, id, done)
+      pathChecks.asked = new Set(pathChecks.found)
+      return done
+    } catch (error) {
+      await progressToolDone($, e, id, undefined)
+      throw error
+    }
+  }).catch((_$, e, next) => next(e))
 
   on('session.start', async ($, e, next) => {
     terminal = await probe($, style, probes)
@@ -711,21 +843,22 @@ export const register: Register = (on, options) => {
 
   on('ui.render', { component: 'TurnDuration' }, async ($, e) => {
     const at = style.clock === 'off' ? undefined : endedAt(await read($, turnEnds), e.props.durationMs, await firstDrawn($, e.requestId))
-    const time = at === undefined ? undefined : clockText(at, await $.clock.now(), style.clock)
+    const time = at === undefined ? undefined : clockText(at, await nowOf($), style.clock, style.clockZone)
     return renderTurnDuration($.ui.resolve(e), style, e.props.word, e.props.durationMs, time)
   })
 
   on('turn.complete', async ($, e, next) => {
     if (style.clock !== 'off' && e.agentId === undefined) {
-      const at = await $.clock.now()
+      const at = await nowOf($)
       await update($, turnEnds, list => withRecord(list, { durationMs: e.durationMs, at }))
     }
+    if (watch) await progressTurnEnd($, watch, e).catch(() => undefined)
     return next(e)
   })
 
   on('prompt.submit', async ($, e, next) => {
     if (style.clock !== 'off' && (e.origin.kind === 'composer' || e.origin.kind === 'bridge')) {
-      const at = await $.clock.now()
+      const at = await nowOf($)
       await update($, sent, list => withRecord(list, { text: promptKey(e.text), at }))
     }
     terminal = await probe($, style, probes)
@@ -799,7 +932,7 @@ export const register: Register = (on, options) => {
     const own = kind === 'composer' || kind === 'bridge' || (kind === 'unclassified' && !e.props.from && !e.props.task)
     if (!own) return next(e)
     const at = style.clock === 'off' ? undefined : sentAt(await read($, sent), e.props.text, await firstDrawn($, e.requestId))
-    const time = at === undefined ? undefined : clockText(at, await $.clock.now(), style.clock)
+    const time = at === undefined ? undefined : clockText(at, await nowOf($), style.clock, style.clockZone)
     if (style.promptStyle === 'off') return time === undefined ? next(e) : next({ ...e, props: { ...e.props, text: `[${time}] ${e.props.text}` } })
     const el = $.ui.resolve(e)
     const drawn = forSurface(fit(e.viewport), e.surface, await linkReach($, probes, style))

@@ -259,7 +259,7 @@ Output from slash commands, built-in or from other plugins, is drawn like a repl
 
 Claude rarely writes a chart unless it knows the terminal can draw one. With `diagramHints` on (the default), each prompt you type or another plugin sends carries a short note that only the model reads. It says tables, alerts, code, mermaid diagrams and `xychart-beta` charts render here, and asks for commands in fenced blocks, since only those get a copy button. A second part describes [figures](#figures): prefer one over mermaid when position carries meaning (durations racing on a time axis, a screen layout, phases, before and after), keep mermaid for plain flows and charts, and draw none for short answers, code changes or reports; the prose never retells the picture. When you ask Claude to explain, compare or plan something and pictures would make it easier to grasp, it builds the reply around them, with the core on the first screen as a picture or a sentence. Then come the role markup, at most 74 columns so a figure fits an 80-column window, glyphs one column wide, and edge ticks `▏` for a time axis so `█` bars line up.
 
-The note costs about 630 tokens per prompt: about 275 for the main part and about 360 for the figure part, plus about 80 while [LaTeX math](#latex-math) is on, when it also says `$$` formulas render. All three are counted with Claude's tokenizer. It's off whenever `mermaid` is off, and skipped for the prompt a headless `claude -p` run starts with and for background notifications; a prompt another plugin sends inside such a run still carries it.
+The note costs about 630 tokens per prompt: about 275 for the main part and about 360 for the figure part, plus about 80 while [LaTeX math](#latex-math) is on, when it also says `$$` formulas render. All three are counted with Claude's tokenizer. This fork sends the note in Korean by default (`hintLanguage: ko`, the same rules in fewer characters); `hintLanguage: en` restores the English note the counts above describe. It's off whenever `mermaid` is off, and skipped for the prompt a headless `claude -p` run starts with and for background notifications; a prompt another plugin sends inside such a run still carries it.
 
 ### Text
 
@@ -304,7 +304,7 @@ What you type, at the prompt or through Remote Control, draws in the theme's col
 |---|---|---|---|
 | ![a prompt in a rounded box](docs/prompts/bubble.png) | ![a prompt in a rounded box across the full width](docs/prompts/wide.png) | ![a prompt with an accent bar](docs/prompts/bar.png) | ![a prompt with a bold chevron](docs/prompts/chevron.png) |
 
-`clock` adds the time: each prompt shows when you sent it, and the line that closes each turn when it finished (`✻ Baked for 1m 55s · 14:32`). It reads `24h` or `12h`, and a time from another day gets its date. With `promptStyle: off` the time goes in front of Claude Code's own prompt row. Off by default.
+`clock` adds the time: each prompt shows when you sent it, and the line that closes each turn when it finished (`✻ Baked for 1m 55s · 14:32`). It reads `24h` or `12h`, and a time from another day gets its date. With `promptStyle: off` the time goes in front of Claude Code's own prompt row. `clockZone` picks the zone (`Asia/Seoul` by default, so a server running in UTC still shows Korean time, marked `KST`; `local` keeps the machine's zone). On by default (`24h`) in this fork.
 
 | `clock` | on a prompt | and on a turn's last line |
 |---|---|---|
@@ -346,7 +346,8 @@ Options sit under `options`, keyed by the plugin's install name. Project setting
 | `tableStyle` | `box`, `rules`, `grid`, `minimal` | `box` |
 | `taskStyle` | `checks` (`[ ]` `[✓]`, done struck through), `ticks` (`○` `✓`), `box` (`□` `✓`), `progress` (ticks with a done-count bar) | `checks` |
 | `promptStyle` | `bubble`, `wide`, `bar`, `chevron`, `off` | `bubble` |
-| `clock` | `off`, `24h`, `12h` | `off` |
+| `clock` | `off`, `24h`, `12h` | `24h` |
+| `clockZone` | an IANA zone such as `Asia/Seoul` or `Europe/Berlin`, or `local` for the machine's zone; Seoul times end in `KST`, other zones in their short name, an unknown name falls back to `Asia/Seoul` | `Asia/Seoul` |
 | `headingStyle` | `banner`, `bold`, `underline`, `uppercase` | `banner` |
 | `highlightNumbers` | `true`, `false` | `true` |
 | `highlightPaths` | `true`, `false` | `true` |
@@ -361,6 +362,8 @@ Options sit under `options`, keyed by the plugin's install name. Project setting
 | `copyButtonStyle` | `inline`, `hover` | `inline` |
 | `diagramHints` | `true`, `false` | `true` |
 | `issueHint` | `true`, `false` | `false` |
+| `hintLanguage` | `ko` (Korean hint), `en` (the original English hint) | `ko` |
+| `progressPane` | `true` (while a turn runs: elapsed time, the tool running now and the tool count, subagents, todo steps; a pane beside the chat in the fullscreen layout, else the band above the prompt; one summary line once the turn ends), `false` | `true` |
 | `rtl` | `auto`, a terminal (`warp`, `kitty`, `apple-terminal`, `iterm`, `ghostty`, `wezterm`, `vscode`, `alacritty`, `windows-terminal`, `gnome`, `konsole`), `off` | `auto` |
 | `mermaid` | `true`, `false` | `true` |
 | `mermaidAscii` | `true`, `false` | `false` |

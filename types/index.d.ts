@@ -24,6 +24,17 @@ declare module 'claude-code' {
       setupLand: string
       foundPaths: string[]
       drawn: StateFamily<number>
+      progress: Shaped<{
+        startedAt: number | null
+        endedAt: number | null
+        durationMs: number
+        ending: 'answer' | 'aborted' | 'refusal' | 'error'
+        tools: number
+        running: { id: string; tool: string; target: string }[]
+        steps: { id: string; text: string; status: 'pending' | 'in_progress' | 'completed' }[]
+        agents: { id: string; description: string; startedAt: number; endedAt?: number }[]
+      }>
+      progressTick: number
     }
   }
 }
