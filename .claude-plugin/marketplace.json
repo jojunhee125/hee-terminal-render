@@ -8,7 +8,7 @@
     {
       "name": "prismantis",
       "description": "Colorful, themeable rendering for Claude Code replies: tables, headings, code, numbers, paths and links.",
-      "source": { "source": "github", "repo": "jojunhee125/hee-terminal-render", "ref": "main" },
+      "source": { "source": "url", "url": "https://github.com/jojunhee125/hee-terminal-render.git", "ref": "main" },
       "version": "0.36.0-hee.1",
       "category": "appearance",
       "tags": [
