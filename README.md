@@ -360,7 +360,7 @@ Options sit under `options`, keyed by the plugin's install name. Project setting
 | `replyCopy` | `markdown` (as written), `plain` (tables and diagrams as drawn art, figures without markup, code without fences) | `markdown` |
 | `copyButtonStyle` | `inline`, `hover` | `inline` |
 | `diagramHints` | `true`, `false` | `true` |
-| `issueHint` | `true`, `false` | `true` |
+| `issueHint` | `true`, `false` | `false` |
 | `rtl` | `auto`, a terminal (`warp`, `kitty`, `apple-terminal`, `iterm`, `ghostty`, `wezterm`, `vscode`, `alacritty`, `windows-terminal`, `gnome`, `konsole`), `off` | `auto` |
 | `mermaid` | `true`, `false` | `true` |
 | `mermaidAscii` | `true`, `false` | `false` |

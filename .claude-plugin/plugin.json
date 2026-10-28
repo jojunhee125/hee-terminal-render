@@ -1,6 +1,6 @@
 {
   "name": "prismantis",
-  "version": "0.36.0",
+  "version": "0.36.0-hee.1",
   "description": "Colorful, themeable rendering for Claude Code replies: tables, headings, code, numbers, paths and links.",
   "author": {
     "name": "Nahum Litvin",
@@ -349,8 +349,8 @@
     "issueHint": {
       "type": "boolean",
       "title": "Issue hint",
-      "description": "On your first prompt and every tenth after it, tell the model it can offer, after asking you, to open a minimal repro issue on prismantis when you say something drew wrong. About 35 tokens each time.",
-      "default": true
+      "description": "On your first prompt and every tenth after it, tell the model it can offer, after asking you, to open a minimal repro issue on prismantis when you say something drew wrong. About 35 tokens each time. Off by default in this build.",
+      "default": false
     },
     "diagramHints": {
       "type": "boolean",
