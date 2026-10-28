@@ -31,11 +31,11 @@
 - No network calls. It runs a program only when you click `⧉ html` or `▣ png` (the clipboard helper) or turn on LaTeX (RaTeX's renderer).
 
 ```
-/plugin marketplace add NahumLitvin/prismantis
+/plugin marketplace add https://github.com/jojunhee125/hee-terminal-render.git
 ```
 
 ```
-/plugin install prismantis@prismantis
+/plugin install prismantis@hee-terminal-render
 ```
 
 Then run `/prismantis setup` to pick a theme and styles from drawn samples, and `/prismantis demo` for a tour of the main features. In a terminal, setup opens a pane: the arrows or Tab move through the styles of a step with a preview of the one in focus, Enter saves it and shows the next step. Where the session has no terminal, as in the desktop app, it walks the same steps in the transcript.
@@ -44,16 +44,16 @@ Then run `/prismantis setup` to pick a theme and styles from drawn samples, and 
 
 Requires Claude Code **2.1.287** or later. Run the two commands above.
 
-To update, run this, then `/reload` in every open session. A session keeps the version it loaded until it reloads.
+To update, run this, then `/reload-plugins` in every open session. A session keeps the version it loaded until it reloads.
 
 ```bash
-claude plugin marketplace update prismantis && claude plugin update prismantis@prismantis
+claude plugin marketplace update hee-terminal-render && claude plugin update prismantis@hee-terminal-render
 ```
 
 To uninstall:
 
 ```bash
-claude plugin uninstall prismantis@prismantis
+claude plugin uninstall prismantis@hee-terminal-render
 ```
 
 For LaTeX math, install RaTeX's renderer and set `latex` to `true`; see [LaTeX math](#latex-math). Until then formulas draw as text.
@@ -186,7 +186,7 @@ install ratex-cli-*/render ~/.local/bin/ratex-render
 
 Pick the archive for your platform (`x86_64-apple-darwin`, `x86_64-unknown-linux-musl`, ...). Any directory on your `PATH` works, but the file must be named `ratex-render`.
 
-LaTeX is off until you set `latex` to `true`. Then prismantis runs `ratex-render` once in kitty and Ghostty, outside tmux, or wherever `CLAUDE_CODE_FORCE_TERMINAL_IMAGES` makes Claude Code draw images, such as a background session viewed in one of them, and keeps LaTeX on only if that test formula comes back. If a later run fails, formulas already drawn stay and new ones stay text until you `/reload`. A reply shown before the test finishes draws its formulas as text, then redraws them as images. Anywhere else, without the renderer, or with `latex` off, formulas draw as text in a `math` code block. So does a formula the renderer rejects, or one too wide for the terminal even at one row. While LaTeX is on, the [diagram hints](#diagram-hints) note also tells Claude that `$$` math renders. Inline `$…$` draws as italic text without its dollar signs, with common commands such as `\rho`, `\cdot` and `\le` shown as symbols; amounts like `$5` stay as written.
+LaTeX is off until you set `latex` to `true`. Then prismantis runs `ratex-render` once in kitty and Ghostty, outside tmux, or wherever `CLAUDE_CODE_FORCE_TERMINAL_IMAGES` makes Claude Code draw images, such as a background session viewed in one of them, and keeps LaTeX on only if that test formula comes back. If a later run fails, formulas already drawn stay and new ones stay text until you `/reload-plugins`. A reply shown before the test finishes draws its formulas as text, then redraws them as images. Anywhere else, without the renderer, or with `latex` off, formulas draw as text in a `math` code block. So does a formula the renderer rejects, or one too wide for the terminal even at one row. While LaTeX is on, the [diagram hints](#diagram-hints) note also tells Claude that `$$` math renders. Inline `$…$` draws as italic text without its dollar signs, with common commands such as `\rho`, `\cdot` and `\le` shown as symbols; amounts like `$5` stay as written.
 
 Formula text matches the reply text. A terminal image fills whole rows, so a formula that falls between two row counts is rendered again with more padding rather than stretched.
 
@@ -324,7 +324,7 @@ Open `/config` and look for the **prismantis** rows, or set values in `~/.claude
 ```json
 {
   "pluginConfigs": {
-    "prismantis@prismantis": {
+    "prismantis@hee-terminal-render": {
       "options": {
         "theme": "tokyo-night",
         "tableStyle": "grid",
@@ -397,7 +397,7 @@ A color is hex (`#a6e3a1`, `#fc0`), `rgb(166,227,161)`, `ansi256(114)` or a name
 
 ## Troubleshooting
 
-- **A setting or update didn't take:** run `/reload`. A session keeps what it loaded.
+- **A setting or update didn't take:** run `/reload-plugins`. A session keeps what it loaded.
 - **A diagram shows as code:** its source is over 80 lines or 8,000 characters, it's wider than the window, it doesn't parse, or `mermaid` is off. Widen the terminal or split the diagram.
 - **A figure shows as code:** it is still streaming, it has more than 80 lines, a line is wider than the window or than 100 columns, or a line holds a glyph, character or markup that would not draw as written; the dim line above it names the line (see [Figures](#figures)). A frame that is slightly off draws as written, never as code. Widen the terminal, or ask Claude to fix the glyph or the markup.
 - **No `⧉ html` on tables:** you're over SSH, in the desktop app or VS Code, or on Linux with no graphical session. `⧉ md` and `⧉ art` still work.
@@ -417,8 +417,8 @@ A color is hex (`#a6e3a1`, `#fc0`), `rgb(166,227,161)`, `ansi256(114)` or a name
 To change the code, read [AGENTS.md](AGENTS.md) instead.
 
 - **What it is:** a Claude Code mod (function hooks in TypeScript) that redraws assistant replies, slash-command output, tool rows, the turn footer and user prompts. It changes how things look, and with `diagramHints` on (the default) it also asks Claude to build a reply around pictures when they make it easier to grasp, with the core on the first screen as a picture or a sentence. The one thing it sends the model is the optional diagram hint below.
-- **Install:** `/plugin marketplace add NahumLitvin/prismantis`, then `/plugin install prismantis@prismantis`. Needs Claude Code 2.1.287+. Changes apply after `/reload`.
-- **Configure:** `/prismantis theme <name>` and `/prismantis setup` set options at runtime. Every option is a key under `pluginConfigs["prismantis@prismantis"].options` in `~/.claude/settings.json` (or a row in `/config`), then `/reload`. Options and defaults are in the [Configure](#configure) table; the machine-readable source is `userConfig` in [.claude-plugin/plugin.json](.claude-plugin/plugin.json). Color values that don't parse are ignored.
+- **Install:** `/plugin marketplace add https://github.com/jojunhee125/hee-terminal-render.git`, then `/plugin install prismantis@hee-terminal-render`. Needs Claude Code 2.1.287+. Changes apply after `/reload-plugins`.
+- **Configure:** `/prismantis theme <name>` and `/prismantis setup` set options at runtime. Every option is a key under `pluginConfigs["prismantis@hee-terminal-render"].options` in `~/.claude/settings.json` (or a row in `/config`), then `/reload-plugins`. Options and defaults are in the [Configure](#configure) table; the machine-readable source is `userConfig` in [.claude-plugin/plugin.json](.claude-plugin/plugin.json). Color values that don't parse are ignored.
 - **Side effects:** no network. Programs it runs: the `⧉ html` and `▣ png` clipboard helper (`/usr/bin/osascript` on macOS, `powershell.exe` on Windows, `copyq` on Linux for `⧉ html` only, 5 second timeout, 15 on Windows, only on a click), and `ratex-render` while `latex` is on. With `diagramHints` on, it adds about 630 tokens of model-only context (about 710 while `latex` is on) to each prompt you type and each prompt another plugin sends, as broken down under [Diagram hints](#diagram-hints).
 - **Turning it off:** `"enabled": false`, or disable the plugin in `/plugin`.
 - **For other mods:** `$.prismantis.markdown({ surface, text, columns })`, typed in [types/index.d.ts](types/index.d.ts). See [Other mods](#other-mods).

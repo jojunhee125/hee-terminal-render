@@ -66,7 +66,7 @@ Use \`⧉ md\` for Markdown, \`⧉ art\` for chat, or \`⧉ html\` for a formatt
 ### Alerts
 
 > [!IMPORTANT]
-> After updating the plugin, open sessions need \`/reload\`.
+> After updating the plugin, open sessions need \`/reload-plugins\`.
 
 > [!WARNING]
 > Terminals that copy on select (Warp) can turn a click on a copy button into a selection. Use the keyboard shortcut.
